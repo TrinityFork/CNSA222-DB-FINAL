@@ -1,0 +1,303 @@
+#------------------------------------------------------------------------------------------------------
+# The following D2 commands were used to create a table using the website https://www.eraser.io/.
+# Both SVG and PDF versions have been made available.
+# This document primarily serves to display my thought process as well as my comments.
+#------------------------------------------------------------------------------------------------------
+
+# USERS & ROLES
+ 
+# Credentials that are used by staff and patient alike to gain access to resources.
+users: {
+  shape: sql_table
+  user_id: INT {constraint: primary_key}
+  username: VARCHAR(20) {constraint: NOT NULL}
+  password: VARCHAR(255) {constraint: NOT NULL}
+  email: VARCHAR(254) {constraint: NOT NULL}
+  phone: VARCHAR(20) {constraint: NOT NULL}
+  created_at: TIMESTAMP
+}
+
+# Determines the level of permission a set user is to have. 
+# Examples: Administrator, Maintenance, Staff, etc.
+roles: {
+  shape: sql_table
+  role_id: INT {constraint: primary_key}
+  role_name: VARCHAR(50) {constraint: NOT NULL}
+  description: VARCHAR
+}
+# Links each user to their assigned role(s), controlling what they can do in the system.
+user_roles: {
+  shape: sql_table
+  user_role_id: INT {constraint: primary_key}
+  user_id: INT {constraint: foreign_key}
+  role_id: INT {constraint: foreign_key}
+}
+
+# STAFF & PATIENTS
+
+# Information on each employee to be able to filter out by set details.
+employees: {
+  shape: sql_table
+  employee_id: INT {constraint: primary_key}
+  user_id: INT {constraint: foreign_key}
+  first_name: varchar(50) {constraint: NOT NULL}
+  last_name: varchar(50) {constraint: NOT NULL}
+  staff_position: VARCHAR {constraint: NOT NULL}
+  specialization: VARCHAR {constraint: NOT NULL}
+  phone: VARCHAR(20) {constraint: NOT NULL}
+  email: VARCHAR(254) {constraint: NOT NULL}
+}
+
+# Information on each patient to log each interaction.
+patients: {
+  shape: sql_table
+  patient_id: INT {constraint: primary_key}
+  user_id: INT {constraint: foreign_key}
+  pcp_employee_id: INT {constraint: foreign_key}
+  first_name: VARCHAR(50) {constraint: NOT NULL}
+  last_name: VARCHAR(50) {constraint: NOT NULL}
+  dob: DATE {constraint: NOT NULL}
+  gender: VARCHAR {constraint: NOT NULL}
+  phone: VARCHAR(20) {constraint: NOT NULL}
+  email: VARCHAR(254) {constraint: NOT NULL}
+  address: VARCHAR
+}
+
+# FACILITY & RESOURCES
+
+# Used to log what rooms are available for each new admission.
+rooms: {
+  shape: sql_table
+  room_id: INT {constraint: primary_key}
+  room_number: VARCHAR(10) {constraint: NOT NULL}
+  room_side: VARCHAR(2) {constraint: NOT NULL}
+  room_status: VARCHAR {constraint: NOT NULL}
+  special_notes: TEXT
+}
+
+# Used to log what equipment is available to be picked up from their designated locations.
+# Example: If a bariatric bed is available, someone can pick it up from the basement.
+equipment: {
+  shape: sql_table
+  equipment_id: INT {constraint: primary_key}
+  equipment_name: VARCHAR {constraint: NOT NULL}
+  status: VARCHAR {constraint: NOT NULL}
+}
+
+# SCHEDULING & RESULTS
+
+# Logs each interaction between patient and employee.
+appointments: {
+  shape: sql_table
+  appointment_id: INT {constraint: primary_key}
+  patient_id: INT {constraint: foreign_key}
+  employee_id: INT {constraint: foreign_key}
+  room_id: INT {constraint: foreign_key}
+  equipment_id: INT {constraint: foreign_key}
+  appointment_date: TIMESTAMP
+  purpose: TEXT
+  status: VARCHAR {constraint: NOT NULL}
+}
+
+# Logs what the issue is and who has said issue.
+diagnoses: {
+  shape: sql_table
+  diagnosis_id: INT {constraint: primary_key}
+  appointment_id: INT {constraint: foreign_key}
+  patient_id: INT {constraint: foreign_key}
+  description: TEXT {constraint: NOT NULL}
+  diagnosis_date: DATE {constraint: NOT NULL}
+}
+
+# Logs the treatment's available for patients and how much they'll cost.
+treatments: {
+  shape: sql_table
+  treatment_id: INT {constraint: primary_key}
+  appointment_id: INT {constraint: foreign_key}
+  patient_id: INT {constraint: foreign_key}
+  description: TEXT
+  cost: DECIMAL {constraint: NOT NULL}
+}
+
+# Logs general information on what patient gets which perscriptions.
+prescriptions: {
+  shape: sql_table
+  prescription_id: INT {constraint: primary_key}
+  patient_id: INT {constraint: foreign_key}
+  employee_id: INT {constraint: foreign_key}
+  drug_name: VARCHAR(125) {constraint: NOT NULL}
+  dosage: VARCHAR(100) {constraint: NOT NULL}
+  is_controlled_substance: BOOLEAN
+  status: VARCHAR {constraint: NOT NULL}
+  created_at: TIMESTAMP
+}
+
+# PRESCRIPTION LOGGING
+
+# This is to log prescriptions that are specifically controlled substances.
+prescription_cs_log: {
+  shape: sql_table
+  log_id: INT {constraint: primary_key}
+  prescription_id: INT {constraint: foreign_key}
+  user_id: INT {constraint: foreign_key}
+  patient_id: INT {constraint: foreign_key}
+  timestamp: TIMESTAMP
+  description: TEXT
+}
+
+# BILLING & PAYMENTS
+
+invoice: {
+  shape: sql_table
+  invoice_id: INT {constraint: primary_key}
+  patient_id: INT {constraint: foreign_key}
+  appointment_id: INT {constraint: foreign_key}
+  total_amount: DECIMAL {constraint: NOT NULL}
+  status: VARCHAR {constraint: NOT NULL}
+  invoice_date: DATE {constraint: NOT NULL}
+}
+
+# Logs what a patient paid and how they paid it.
+payments: {
+  shape: sql_table
+  payment_id: INT {constraint: primary_key}
+  invoice_id: INT {constraint: foreign_key}
+  patient_id: INT {constraint: foreign_key}
+  amount_paid: DECIMAL {constraint: NOT NULL}
+  payment_date: TIMESTAMP {constraint: NOT NULL}
+  payment_method: VARCHAR(50) {constraint: NOT NULL}
+}
+
+# CROW'S FOOT NOTATIONS
+
+# A user can have one employee, and an employee can have one user.
+users -> employees: {
+  source-arrowhead: {shape: cf-one}
+  target-arrowhead: {shape: cf-one}
+}
+
+# A user can have one patient, and a patient can have one user.
+users -> patients: {
+  source-arrowhead: {shape: cf-one}
+  target-arrowhead: {shape: cf-one}
+}
+
+# A user can have many required user roles, and a user role can have one user.
+users -> user_roles: {
+  source-arrowhead: {shape: cf-one}
+  target-arrowhead: {shape: cf-many-required}
+}
+
+# A role can have many required user roles, and a user role can have one role.
+roles -> user_roles: {
+  source-arrowhead: {shape: cf-one}
+  target-arrowhead: {shape: cf-many-required}
+}
+
+# An employee can have one patient, and a patient can have many employees.
+employees -> patients: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one}
+}
+
+# A patient can have one required appointment, and an appointment can have many patients.
+patients -> appointments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# An employee can have one required appointment, and an appointment can have many employees.
+employees -> appointments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A room can have one appointment, and an appointment can have many rooms.
+rooms -> appointments {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one}
+}
+
+# An equipment item can have one appointment, and an appointment can have many equipment items.
+equipment -> appointments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one}
+}
+
+# An appointment can have one required diagnosis, and a diagnosis can have many appointments.
+appointments -> diagnoses: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A patient can have one required diagnosis, and a diagnosis can have many patients.
+patients -> diagnoses: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# An appointment can have one required treatment, and a treatment can have many appointments.
+appointments -> treatments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A patient can have one required treatment, and a treatment can have many patients.
+patients -> treatments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A patient can have one required prescription, and a prescription can have many patients.
+patients -> prescriptions: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# An employee can have one required prescription, and a prescription can have many employees.
+employees -> prescriptions: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A prescription can have one required prescription control substance log, and a prescription control substance log can have many prescriptions.
+prescriptions -> prescription_cs_log: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A user can have one required prescription control substance log, and a prescription control substance log can have many users.
+users -> prescription_cs_log: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A patient can have one required prescription control substance log, and a prescription control substance log can have many patients.
+patients -> prescription_cs_log: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A patient can have one required invoice, and an invoice can have many patients.
+patients -> invoice: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# An appointment can have one invoice, and an invoice can have one appointment.
+appointments -> invoice: {
+  source-arrowhead: {shape: cf-one}
+  target-arrowhead: {shape: cf-one}
+}
+
+# An invoice can have one required payment, and a payment can have many invoices.
+invoice -> payments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
+
+# A patient can have one required payment, and a payment can have many patients.
+patients -> payments: {
+  source-arrowhead: {shape: cf-many}
+  target-arrowhead: {shape: cf-one-required}
+}
