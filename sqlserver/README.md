@@ -20,5 +20,3 @@ This directory is made up of two sub-directories containing the SQL file uploads
 **Other directories:**
 - [Primary README](../README.md)
 - [ERD Diagram](../erddiagram/README.md)
-
-NOTE: Make directroies ssms and postgres
