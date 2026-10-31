@@ -4,7 +4,7 @@ The following steps will walk you through how to connect to the database server,
 
 1. Begin by connecting to the database server as yourself then changing over to my user oprobst.
 The following is what I use to connect, but it is likely password protected: `SSH username@database-username.XXXXlab.net`
-Additionally this server's IP is: 10.200.12.148.
+Additionally this server's IP is: XX.200.12.148.
 
 2. Connect to the Postgres system user and open its database shell.
 To do so run the following command:
